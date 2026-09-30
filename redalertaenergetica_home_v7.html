@@ -265,7 +265,8 @@ body{
 
 /* Tarjeta Ebook: dos botones (muestra del ebook + Cuaderno SATC). Los botones ocultos no
    reciben toques: en móvil el primer toque despliega la tarjeta y el segundo elige botón. */
-.card-btns{display:flex;flex-wrap:wrap;gap:8px}
+.card-btns{display:flex;flex-wrap:wrap;gap:8px;max-height:32px;transition:max-height .38s ease}
+.card:hover .card-btns,.card.is-active .card-btns,.card:focus-within .card-btns{max-height:96px}
 .card:not(:hover):not(.is-active):not(:focus-within) .card-btns .card-btn{pointer-events:none}
 
 #card-ebook:focus-within .card-btn{opacity:1;transform:translateY(0)}
@@ -328,7 +329,8 @@ body{
 .card:hover .card-icon svg,.card.is-active .card-icon svg{transform:translateY(-4px) scale(1.04)}
 
 /* EBOOK · la página gira sobre el lomo y el brote crece */
-.book-page{transform-origin:45px 50px;transform-box:view-box;transition:transform .95s cubic-bezier(.6,.05,.25,1),fill .95s ease}
+.book-page{transform-origin:45px 50px;transform-box:view-box;fill-opacity:0;stroke-opacity:0;transition:transform .95s cubic-bezier(.6,.05,.25,1),fill-opacity .3s ease,stroke-opacity .3s ease}
+.card--green:hover .book-page,.card--green.is-active .book-page,#card-ebook:focus-within .book-page{fill-opacity:1;stroke-opacity:1}
 .card--green:hover .book-page,.card--green.is-active .book-page,#card-ebook:focus-within .book-page{transform:scaleX(-1) skewY(-4deg)}
 .book-sprout{transform-origin:45.5px 30px;transform-box:view-box;transform:scale(.62);transition:transform .8s cubic-bezier(.34,1.56,.64,1) .15s}
 .card--green:hover .book-sprout,.card--green.is-active .book-sprout,#card-ebook:focus-within .book-sprout{transform:scale(1.08)}
@@ -375,8 +377,9 @@ body{
 .bar.b1{transform:scaleY(.55)}.bar.b2{transform:scaleY(.5)}.bar.b3{transform:scaleY(.45)}
 .card--pink:hover .bar.b2,.card--pink.is-active .bar.b2{transition-delay:.1s}
 .card--pink:hover .bar.b3,.card--pink.is-active .bar.b3{transition-delay:.2s}
-.spark{stroke-dasharray:1;stroke-dashoffset:.62;transition:stroke-dashoffset 1s cubic-bezier(.65,0,.35,1) .25s}
-.card--pink:hover .spark,.card--pink.is-active .spark{stroke-dashoffset:0}
+.spark{stroke-dasharray:1;stroke-dashoffset:0}
+@keyframes spark-redraw{0%{stroke-dashoffset:1}100%{stroke-dashoffset:0}}
+.card--pink:hover .spark,.card--pink.is-active .spark{animation:spark-redraw 1s cubic-bezier(.65,0,.35,1) .2s both}
 .live{transition:transform .5s cubic-bezier(.34,1.56,.64,1) 1s;transform-box:fill-box;transform-origin:center}
 @keyframes live{0%{transform:scale(1);opacity:.8}100%{transform:scale(3.4);opacity:0}}
 .live-ring{transform-box:fill-box;transform-origin:center;animation:live 2.4s ease-out 2.6s infinite}
@@ -589,7 +592,6 @@ body{
   .hero{padding:28px 28px 20px}
   .grid{grid-template-columns:repeat(2,1fr);gap:14px}
   .card{min-height:360px}
-  .stats-strip{padding:4px 28px 44px}
   .footer-row{flex-direction:column;align-items:flex-start;gap:18px}
 }
 
@@ -609,8 +611,6 @@ body{
   .card-icon svg{width:74px;height:74px}
   .card-label{font-size:28px}
 
-  .stats-strip{padding:2px 18px 36px}
-  .stats-inner{gap:14px 26px;padding:18px 18px}
 
   .site-footer{padding:30px 18px 22px}
   .footer-links{gap:14px 22px}
@@ -626,27 +626,29 @@ body{
 ::-webkit-scrollbar-thumb:hover{background:rgba(46,42,36,0.35)}
 
 /* ══════════════════════════════
-   v7 · LIENZO DE TINTA (franja del bosque de huiro + gotas al hacer clic)
-   Canvas WebGL fijo detrás de todo. Sin WebGL, queda el papel de siempre.
+   v7 · FRANJA DE HUIRO (canvas WebGL dentro de #mar) + gotas al hacer clic
+   Sin WebGL, la franja no ocupa espacio y la página queda como en v6.
    ══════════════════════════════ */
-#tinta{
-  position:fixed;inset:0;width:100%;height:100%;
-  z-index:0;pointer-events:none;display:block;
-  opacity:0;transition:opacity 1.1s ease;
-}
-#tinta.is-ready{opacity:1}
 .intro,.hero{position:relative;z-index:1}
-
-/* franja marina: el bosque de huiro bajo las tarjetas (el canvas fijo la pinta aquí) */
-.mar{position:relative;z-index:1;height:clamp(118px,17vh,168px);pointer-events:none}
+.mar{position:relative;z-index:0;height:clamp(96px,13vh,136px);pointer-events:none}
+.mar canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .9s ease}
+.mar canvas.is-ready{opacity:1}
 .no-ink .mar{display:none}
-@media(max-width:540px){.mar{height:clamp(104px,15vh,132px)}}
+@media(max-width:540px){.mar{height:clamp(92px,13vh,110px)}}
+
+/* circulitos de tinta al hacer clic en el papel */
+.gota{position:absolute;width:0;height:0;pointer-events:none;z-index:3}
+.gota svg{position:absolute;left:-30px;top:-30px;width:60px;height:60px;overflow:visible}
+.gota path{fill:none;stroke:#2e2a24;stroke-linecap:round;vector-effect:non-scaling-stroke;transform-origin:30px 30px;transform-box:view-box;animation:gota-ring 1.9s cubic-bezier(.2,.7,.3,1) both}
+.gota path:nth-child(2){animation-delay:.12s}
+.gota path:nth-child(3){animation-delay:.24s}
+@keyframes gota-ring{0%{transform:scale(.15);opacity:0}14%{opacity:.62}100%{transform:scale(1);opacity:0}}
 
 /* pincelada bajo "antes": se dibuja al cargar, en el mismo idioma del lienzo */
 .intro h1 em{position:relative;display:inline-block}
 .intro h1 em::after{
-  content:'';position:absolute;left:-4%;right:-6%;bottom:-.1em;height:.26em;
-  background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 20' preserveAspectRatio='none'%3E%3Cpath d='M3 13.5C28 9 61 7.6 96 8.4c34 .8 66 2.4 101-1.4-2.6 2.3-6.4 3.6-11 4.6C152 15 118 13 86 13.6 58 14 30 16.6 6 17.4 3.2 17.5 1.6 15.4 3 13.5z' fill='%232e2a24' fill-opacity='.82'/%3E%3Cpath d='M20 12.6c30-2.2 70-3.4 110-2.2' stroke='%23e3ded3' stroke-width='.9' stroke-opacity='.55' fill='none'/%3E%3C/svg%3E");
+  content:'';position:absolute;left:-4%;right:-7%;bottom:-.13em;height:.32em;
+  background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 24' preserveAspectRatio='none'%3E%3Cpath d='M2 15C30 9.5 64 8 98 8.6c36 .6 62 1.4 88-.2 4-.2 8 .6 10 2-8 2.2-20 3.4-36 3.8-34 .8-68 1-100 2.2-22 .8-42 3.2-54 4C2.8 20.6.6 17.6 2 15z' fill='%232e2a24' fill-opacity='.88'/%3E%3Cpath d='M112 11.4c30-.4 56-.6 82-1.4M96 13.3c32-.3 62-.5 88-1.3M130 12.3c20-.2 38-.4 54-.9' stroke='%23e3ded3' stroke-width='.8' stroke-opacity='.8' fill='none'/%3E%3Cpath d='M176 13.8c8-.3 15-.9 22-2.4' stroke='%232e2a24' stroke-opacity='.7' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   clip-path:inset(0 100% 0 0);
   animation:brush-in 1.05s cubic-bezier(.65,0,.35,1) .7s forwards;
 }
@@ -657,7 +659,6 @@ body{
 </style>
 </head>
 <body>
-<canvas id="tinta" aria-hidden="true"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="ink-rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".055" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.8" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
 
 <!-- ══════════════════════════════
@@ -717,7 +718,7 @@ body{
             <path class="d f" pathLength="1" fill="rgba(255,255,255,0.22)" stroke="rgba(0,0,0,0.7)" stroke-width="2.4" d="M45 30C50 25 62 22 77 23.5L77 65C62 63.5 50 66.5 45 71Z"/>
             <path class="d l" pathLength="1" stroke="rgba(0,0,0,0.34)" stroke-width="1.5" d="M20 36.5L38 35M20 43L38 41.8M20 49.5L34 48.6M20 56L36 55.2"/>
             <path class="d l" pathLength="1" stroke="rgba(0,0,0,0.34)" stroke-width="1.5" d="M52 35L70 36.5M52 41.8L70 43M52 48.6L66 49.5M52 55.2L68 56"/>
-            <path class="book-page" fill="rgba(255,255,255,0.3)" stroke="rgba(0,0,0,0.5)" stroke-width="1.5" d="M45 30C50 25.5 61 23 74 24.2L74 64C61 63 50 66 45 71Z"/>
+            <path class="book-page" fill="rgba(255,255,255,0.3)" stroke="rgba(0,0,0,0.5)" stroke-width="1.5" d="M45 30C50 25 62 22 77 23.5L77 65C62 63.5 50 66.5 45 71Z"/>
             <path class="book-ribbon" fill="rgba(0,0,0,0.34)" d="M62 24.5L62 12L68 12L68 23.5L65 21Z"/>
             <g class="book-sprout">
               <path class="d" pathLength="1" stroke="rgba(0,0,0,0.72)" stroke-width="2" d="M45.5 30C45.5 24 44.5 19 46.5 12.5"/>
@@ -841,7 +842,7 @@ body{
 <!-- ══════════════════════════════
      MAR (franja del bosque de huiro; lo dibuja el lienzo de tinta)
      ══════════════════════════════ -->
-<div class="mar" id="mar" aria-hidden="true"></div>
+<div class="mar" id="mar" aria-hidden="true"><canvas id="tinta"></canvas></div>
 
 <!-- ══════════════════════════════
      FOOTER
@@ -959,6 +960,7 @@ body{
       }, { passive: false });
 
       card.addEventListener('keydown', e => {
+        if (e.target !== card) return; /* Enter en un botón interno debe seguir su enlace */
         if (e.key === 'Enter' || e.key === ' ') {
           if (isLink && e.key === 'Enter') return; /* Enter navega el link nativo */
           e.preventDefault();
@@ -1049,30 +1051,25 @@ body{
 <!--TINTA-->
 <script>
 /* ══════════════════════════════════════════════════════════════
-   LIENZO DE TINTA · v7 — franja del bosque de huiro
-   Una franja baja, bajo las tarjetas, pintada en tinta sumi sobre el papel
-   del sitio: huiros (Macrocystis) que crecen desde el fondo hacia la línea
-   del agua, burbujas y un leve oleaje.
-   · Scroll: al bajar, el huiro crece hasta la superficie y extiende su dosel
-     sobre ella; al subir, se recoge. El vaivén avanza y retrocede con el
-     scroll, y la velocidad se vuelve corriente (las láminas se inclinan).
-     Si bajas rápido, el pincel se seca en vetas; al parar, se empapa.
-   · Clic o toque en el papel: una gota deja pequeños anillos de tinta
-     (suminagashi); dentro de la franja, además, aparta los huiros.
-   La tinta se acumula como absorbancia (Beer–Lambert): papel · e^(−A·k).
-   Solo se dibuja cuando la franja o una gota están a la vista.
+   FRANJA DE HUIRO · v7
+   Una franja baja bajo las tarjetas, pintada en tinta sumi sobre el papel del
+   sitio: matas de huiro (Macrocystis) de 2 a 4 tallos por rizoide, con curvas
+   en S que se inclinan con la corriente y láminas que cuelgan aguas abajo.
+   Solo algunos tallos llegan a la superficie, y esos se tienden sobre ella.
+   El fondo rocoso se disuelve en el pie de página.
+   · Scroll: al bajar, el huiro crece hacia la superficie; al subir, se recoge.
+     El vaivén avanza y retrocede con el scroll y la velocidad se vuelve
+     corriente (se asienta en ~1 s). Si bajas rápido, el pincel se seca.
+   · Clic o toque en el papel: pequeños anillos de tinta (en la franja,
+     además, apartan el huiro un momento).
+   El canvas vive dentro de la franja: se mueve con ella y solo pinta lo
+   que se ve. Tinta como absorbancia (Beer–Lambert): papel · e^(−A·k).
    ══════════════════════════════════════════════════════════════ */
 (function(){
-  var canvas = document.getElementById('tinta');
   var band = document.getElementById('mar');
-  if (!canvas || !band) return;
-  var gl = null;
-  try {
-    gl = canvas.getContext('webgl', { antialias:false, alpha:false, depth:false, stencil:false, premultipliedAlpha:false, preserveDrawingBuffer:false, powerPreference:'low-power' })
-      || canvas.getContext('experimental-webgl');
-  } catch(e) { gl = null; }
-  if (!gl) { document.documentElement.classList.add('no-ink'); return; }
-
+  var canvas = document.getElementById('tinta');
+  if (!band || !canvas) return;
+  var root = document.documentElement;
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
@@ -1083,234 +1080,234 @@ body{
 '#else',
 'precision mediump float;',
 '#endif',
-'uniform vec2 uRes;uniform float uScale;uniform float uPhase;uniform float uTime;',
-'uniform float uTop;',    // y (px CSS, pantalla) de la línea del agua
-'uniform float uBot;',    // y del fondo marino
-'uniform float uGrow;',   // 0..1 cuánto han crecido los huiros (lo mueve el scroll)
-'uniform float uVel;',    // velocidad de scroll suavizada (-1..1)
+'uniform vec2 uRes;uniform float uScale;uniform float uPhase;',
+'uniform float uGrow;',   // 0..1 crecimiento (lo mueve el scroll)
+'uniform float uVel;',    // corriente por velocidad de scroll (-1..1)
 'uniform float uSmall;',
-'uniform vec4 uTrail[8];',// x, y, edad, fuerza
-'uniform vec4 uDrop[4];', // x, y, radio, edad
+'uniform vec4 uTrail[6];',// x, y, edad, fuerza (px de la franja)
+'uniform vec4 uDrop[4];', // x, y, radio, edad (px de la franja)
 '',
 'float h11(float p){p=fract(p*.1031);p*=p+33.33;p*=p+p;return fract(p);}',
 'float h21(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}',
 'float vn(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);',
 '  return mix(mix(h21(i),h21(i+vec2(1.,0.)),u.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),u.x),u.y);}',
-'float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return s;}',
+'float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<3;i++){s+=a*vn(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return s;}',
 'float sdEll(vec2 p,vec2 r){float k0=length(p/r),k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-4);}',
-// lámina: trazo de presionar y levantar (perfil sin(πu)^.7)
+// lámina larga y angosta: presionar y levantar, con borde ondulado
 'float leaf(vec2 lp,vec2 dir,float Lb,float W,float wav){',
 '  float al=dot(lp,dir),ac=dot(lp,vec2(dir.y,-dir.x));',
 '  ac-=wav*clamp(al/Lb,0.,1.);',
-'  float x=clamp(al/Lb,0.,1.);float w=W*pow(sin(3.1416*x),.7)*(1.-.3*x);',
+'  float x=clamp(al/Lb,0.,1.);float w=W*pow(sin(3.1416*x),.6)*(1.-.45*x);',
 '  return (al<0.||al>Lb)?length(vec2(al<0.?al:al-Lb,ac)):abs(ac)-w;}',
 '',
-'float waterAt(float x){',
-'  float w=uTop+sin(x*.013+uPhase*1.3)*1.6+sin(x*.031-uPhase*1.9)*.9*(1.+abs(uVel)*4.);',
-'  for(int i=0;i<8;i++){vec4 t=uTrail[i];if(t.w<=0.)continue;',
-'    float dx=abs(x-t.x);float near=exp(-abs(t.y-uTop)/60.);',
-'    w+=near*t.w*sin(dx*.08-t.z*9.)*5.*exp(-t.z*1.9)*exp(-dx/180.);}',
-'  return w;}',
+'float H,SURF,CUR;',
+'float bedTop(float x){',                                                          // fondo rocoso de borde irregular
+'  float b=H-20.+(fbm(vec2(x*.021,1.))-.5)*9.;',
+'  float c=floor(x/96.);float bx=(c+.3+.4*h11(c*2.3))*96.;float br=(7.+10.*h11(c*6.1))*step(.45,h11(c*4.7));',
+'  float dx=x-bx;b-=br>0.?sqrt(max(br*br-dx*dx*.55,0.))*.8:0.;',
+'  return b;}',
 '',
-'vec2 displace(vec2 p){',
-'  vec2 d=vec2(0.);',
-'  for(int i=0;i<8;i++){vec4 t=uTrail[i];if(t.w<=0.)continue;',
+'vec2 dispTrail(vec2 p){vec2 d=vec2(0.);',
+'  for(int i=0;i<6;i++){vec4 t=uTrail[i];if(t.w<=0.)continue;',
 '    vec2 r=p-t.xy;float dist=length(r)+.001;vec2 n=r/dist;',
-'    d+=t.w*(n*sin(dist*.08-t.z*8.)*5.+vec2(-n.y,n.x)*4.)*exp(-t.z*1.6)*exp(-dist/110.);}',
+'    d+=t.w*(n*sin(dist*.1-t.z*8.)*3.+vec2(-n.y,n.x)*2.5)*exp(-t.z*1.7)*exp(-dist/70.);}',
 '  return d;}',
 '',
-'float swayAt(float v,float L,float r1,float r3,float A){',
-'  float q=clamp(v/L,0.,1.);',
-'  return A*pow(q,1.2)*sin(uPhase*.9+v*.012+r1*6.2832)+A*.45*q*sin(uPhase*1.7+v*.03+r3*6.2832);}',
-'',
-// una capa de huiros: tallos que suben desde el fondo, láminas con flotador, dosel en la superficie
-'float kelp(vec2 p,float cw,float gBase,float seed,float wsc,float room){',
+// una capa de matas de huiro
+'float kelp(vec2 p,float cw,float seed,float wsc,float dens){',
 '  float d=1e4;float ci=floor(p.x/cw);',
-'  float A=(9.+12.*min(abs(uVel)*2.,1.))*wsc;',
-'  float cur=.7*sin(uPhase*.3+seed)+uVel*1.3;',                               // corriente
-'  float ext=cw*.5+A*1.6+room*.12+44.*wsc;',
+'  float full=0.;',
 '  for(int j=-2;j<=2;j++){',
 '    float id=ci+float(j);',
-'    if(h11(id*9.1+seed*3.3)<.1||vn(vec2(id*cw*.0045,seed))<mix(.42,.3,uSmall))continue;', // matas y claros
-'    float r1=h11(id*1.37+seed);',
-'    float xt=(id+.2+.6*r1)*cw;',
-'    if(abs(p.x-xt)>ext)continue;',
-'    float r2=h11(id*2.71+seed*1.3),r3=h11(id*3.93+seed*2.1),r4=h11(id*5.17+seed*.7);',
-'    float g=gBase+(vn(vec2(xt*.01,seed))-.5)*6.;',
-'    float full=max(g-uTop-7.,10.);',
-'    float L=full*mix(.34+.2*r2,1.,uGrow)*mix(1.,.72+.28*r4,step(.72,r1));',
+'    float hp=h11(id*9.1+seed*3.3);',
+'    if(hp<.16||vn(vec2(id*cw*.0042,seed))<dens)continue;',                   // matas y claros (ma)
+'    float xt=(id+.25+.5*h11(id*1.37+seed))*cw;',
+'    if(abs(p.x-xt)>cw*2.2)continue;',
+'    float g=bedTop(xt)+2.;',
+'    float fullH=max(g-SURF-2.,8.);',
 '    float u=p.x-xt,v=g-p.y;',
-'    float lean=(r3-.5)*min(max(v,0.),L)*.12;',
-'    float us=u-swayAt(v,L,r1,r3,A)-lean;',
-'    float dT=v<0.?length(vec2(us,v))-1.3*wsc:(v>L?length(vec2(us,v-L))-1.:abs(us)-mix(1.5,1.,v/L)*wsc);',
-'    d=min(d,dT);',
-'    vec2 q0=vec2(u,v);float S=(13.+7.*r2)*wsc;float n0=floor(v/S);',
-'    for(int k=0;k<2;k++){',
-'      float nn=n0+float(k);float vb=nn*S;',
-'      if(vb<L*.14||vb>L)continue;',
-'      float hn=h11(nn*3.1+id*.7);float side=hn<.5?-1.:1.;',
-'      float ang=cur+side*(.3+.35*hn)+.22*sin(uPhase*1.3+nn*1.7+r1*5.);',
-'      vec2 dir=vec2(sin(ang),cos(ang));',
-'      vec2 lp=q0-vec2(swayAt(vb,L,r1,r3,A)+(r3-.5)*vb*.12,vb);',
-'      float Lb=(17.+15.*h11(nn*5.3+id))*wsc*(.55+.45*smoothstep(0.,.5,vb/L));',
-'      d=min(d,leaf(lp,dir,Lb,2.7*wsc,sin(dot(lp,dir)*.22+uPhase*2.4+nn)*1.1*wsc));',
-'      d=min(d,length(lp-dir*1.8*wsc)-1.7*wsc);',                              // neumatocisto
+'    float n=2.+floor(h11(id*4.1+seed)*2.99);',
+'    d=min(d,sdEll(vec2(u,v+.5),vec2((3.4+1.8*hp)*wsc,(2.2+.8*hp)*wsc))+(vn(p*.5)-.5)*1.4);', // rizoide
+'    for(int k=0;k<4;k++){',
+'      float fk=float(k);if(fk>=n)continue;',
+'      float sid=id*7.13+fk*1.91+seed;',
+'      float ms=h11(sid*1.3)>.58?1.:.42+.5*h11(sid);',                         // madurez: solo algunos llegan arriba
+'      float L=fullH*mix(.3,1.,uGrow)*ms;',
+'      float A=(6.+14.*uGrow+12.*abs(uVel))*wsc;',
+'      float spread=(fk-(n-1.)*.5)*.16;',
+'      float lean=spread+CUR*.32;',
+'      float x0=(fk-(n-1.)*.5)*1.6*wsc;',
+'      float vv=clamp(v,0.,L);float q=vv/L;',
+'      float dx=x0+lean*vv+A*pow(q,1.5)*sin(uPhase*.8+vv*.035+sid)+A*.35*q*sin(uPhase*1.5+vv*.08+sid*2.);',
+'      float us=u-dx;',
+'      float w=mix(1.7,.45,q)*wsc;',
+'      float brk=smoothstep(.8,.9,vn(vec2(sid*3.,v*.09)))*2.;',                  // pincel que se corta a ratos
+'      float dT=v<0.?1e4:(v>L?length(vec2(us,v-L))-.5:abs(us)*.92-w+brk);',
+'      d=min(d,dT);',
+'      float side=CUR>=0.?1.:-1.;',
+'      float S=8.5*wsc;float n0=floor(v/S);',
+'      for(int b=0;b<2;b++){',
+'        float nb=n0+float(b);float vb=nb*S;',
+'        if(vb<L*.16||vb>L-2.)continue;',
+'        float hb=h11(nb*3.7+sid);',
+'        float sd=hb<.22?-side:side;',                                             // la mayoría cuelga aguas abajo
+'        float qb=vb/L;',
+'        float bx=x0+lean*vb+A*pow(qb,1.5)*sin(uPhase*.8+vb*.035+sid)+A*.35*qb*sin(uPhase*1.5+vb*.08+sid*2.);',
+'        vec2 lp=vec2(u,v)-vec2(bx,vb);',
+'        vec2 dir=normalize(vec2(sd*(.85+.3*abs(CUR)),-.42+.34*hb+.12*sin(uPhase*1.2+nb)));',
+'        float Lb=(9.+10.*hb)*wsc*(.55+.45*qb)*(sd==side?1.:.6);',
+'        d=min(d,leaf(lp,dir,Lb,1.45*wsc,sin(dot(lp,dir)*.35+uPhase*2.2+nb)*.9*wsc));',
+'        d=min(d,sdEll(lp-dir*1.2*wsc,vec2(1.35,1.05)*wsc));',                    // neumatocisto
+'      }',
+'      float reach=smoothstep(.9,1.,L/fullH);',                                   // se tiende sobre la superficie
+'      if(reach>.01){',
+'        float tx=x0+lean*L+A*sin(uPhase*.8+L*.035+sid)+A*.35*sin(uPhase*1.5+L*.08+sid*2.);',
+'        float mx=(u-tx)*side;float Lm=(24.+30.*h11(sid*2.2))*wsc*reach;',
+'        if(mx>-2.&&mx<Lm+12.){',
+'          float cy=L-1.5-mx*.035+sin(mx*.19+uPhase*1.6)*.9;',
+'          float t=clamp(mx/Lm,0.,1.);',
+'          float dm=mx>Lm?length(vec2(mx-Lm,v-cy))-.4:abs(v-cy)-mix(1.1,.35,t)*wsc;',
+'          d=min(d,dm);',
+'          float nm=floor(mx/6.5);',
+'          for(int b=0;b<2;b++){float nb=nm+float(b);float mb=nb*6.5;if(mb<2.||mb>Lm)continue;',
+'            float hb=h11(nb*5.1+sid);',
+'            vec2 lp=vec2(u,v)-vec2(tx+side*mb,L-1.5-mb*.035+sin(mb*.19+uPhase*1.6)*.9);',
+'            vec2 dir=normalize(vec2(side*(.3+.3*hb),-1.));',
+'            d=min(d,leaf(lp,dir,(5.+6.*hb)*wsc,1.2*wsc,sin(dot(lp,dir)*.5+uPhase*2.+nb)*.6));}',
+'        }',
+'      }',
 '    }',
-'    float reach=smoothstep(.82,1.,L/full);',                                     // dosel: solo al tocar la superficie
-'    if(reach>.01){',
-'      vec2 top=q0-vec2(swayAt(L,L,r1,r3,A)+(r3-.5)*L*.12,L);',
-'      for(int k=0;k<2;k++){float side=float(k)*2.-1.;',
-'        float ang=side*(1.38+.08*sin(uPhase*.9+r2*6.))+cur*.4;vec2 dir=vec2(sin(ang),cos(ang));',
-'        float Lb=(26.+22.*h11(id+float(k)*1.7))*wsc*reach;',
-'        d=min(d,leaf(top,dir,Lb,2.4*wsc,sin(dot(top,dir)*.16+uPhase*2.+float(k))*1.6*wsc));}',
-'    }',
-'    d=min(d,sdEll(q0-vec2(0.,.5),vec2((5.+2.5*r2)*wsc,(3.+1.2*r2)*wsc)));',       // rizoide
 '  }',
 '  return d;}',
 '',
 'float MOTT;',
 'float inkA(float d,float tone,float soft){',
 '  float cov=1.-smoothstep(-soft,soft,d);',
-'  float edge=.64+.36*exp(min(d,0.)/2.4);',
+'  float edge=.62+.38*exp(min(d,0.)/1.8);',
 '  return cov*tone*edge*MOTT;}',
 '',
 'void main(){',
 '  vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y)/uScale;',
+'  H=uRes.y/uScale;SURF=mix(10.,9.,uSmall);',
+'  CUR=clamp(.55*sin(uPhase*.22)+uVel*1.2,-1.,1.);',
 '  vec3 paper=vec3(.890,.871,.827);',
-'  vec3 K=vec3(2.40,2.16,1.92);',                                              // tinta azulada (seiboku)
+'  vec3 foot=vec3(.216,.200,.175);',                                            // color real del pie de página sobre el papel
+'  vec3 K=vec3(1.62,1.66,1.74);',                                               // tinta que a plena carga llega al tono del pie
+'  float wob=sin(p.x*.012+uPhase*1.2)*1.1+sin(p.x*.029-uPhase*1.7)*.6*(1.+abs(uVel)*3.);',
+'  vec2 dt=dispTrail(p);',
+'  float wl=SURF+wob+dt.y*.6;',
+'  float under=smoothstep(wl-1.,wl+3.,p.y);',
 '  float grain=vn(p*.9)*.6+vn(p*.23)*.4;',
-'  vec3 col=paper*(.972+.05*grain);',
-'  float A=0.;',
-'',
-// gotas: el mundo se aparta con el mapa exacto del suminagashi; dentro, anillos
-'  vec2 ps=p;float inDrop=0.;float ringA=0.;',
+'  vec3 col=paper*mix(1.,.975+.045*grain,under);',
+// aguada del agua, apenas fría, más densa hacia el fondo, con haces de luz
+'  float rays=smoothstep(.5,.9,vn(vec2((p.x+p.y*.5)*.025,uPhase*.06)));',
+'  col=mix(col,vec3(.72,.745,.76),under*(.05+.11*smoothstep(wl,H,p.y))*(1.-.4*rays));',
+// las gotas apartan el huiro con un empuje suave, sin borrar la tinta
+'  vec2 ps=p-dt*under;',
 '  for(int i=3;i>=0;i--){vec4 D=uDrop[i];if(D.z<=.5)continue;',
-'    vec2 dv=ps-D.xy;float d2=dot(dv,dv);float r2=D.z*D.z;',
-'    if(d2>r2*1.03){ps=D.xy+dv*sqrt(1.-r2/d2);}',
-'    else{inDrop=1.;float rr=sqrt(d2)/D.z;',
-'      ringA=max(ringA,(smoothstep(.1,0.,abs(rr-.93))*.9+smoothstep(.07,0.,abs(rr-.62))*.55+smoothstep(.05,0.,abs(rr-.34))*.35)*smoothstep(0.,.3,D.w));}',
+'    vec2 dv=ps-D.xy;float dd=length(dv)/(D.z*1.6);',
+'    ps=D.xy+dv*(1.-.55*exp(-dd*dd));}',
+'  MOTT=.84+.26*fbm(ps*.06);',
+'  float wsc=mix(1.,.86,uSmall);',
+'  float dry=clamp(abs(uVel)*1.3,0.,.6);',
+'  float fei=1.-dry*smoothstep(.56-.12*dry,.74,fbm(vec2(p.x*.25+p.y*.02,p.y*.02)));',
+'  float A=0.;',
+'  float soft=max(.8,.9/uScale);',
+'  A+=inkA(kelp(ps,40.*wsc,11.,.62*wsc,mix(.44,.34,uSmall))+(fbm(ps*.1)-.5)*2.5,.1,3.2)*under;',       // fondo: aguada pálida
+'  A+=inkA(kelp(ps,56.*wsc,23.,.8*wsc,mix(.42,.32,uSmall))+(fbm(ps*.09)-.5)*1.8,.28,soft+.9)*fei*under;',
+'  A+=inkA(kelp(ps,78.*wsc,37.,wsc,mix(.4,.3,uSmall))+(fbm(ps*.08)-.5)*1.5,.74,soft)*fei*under;',
+// burbujas: pocas, en columnitas que salen de los flotadores; algunas llenas
+'  float cb=floor(p.x/78.);',
+'  for(int j=0;j<2;j++){float id=cb+float(j)-.0;float hb=h11(id*7.3+2.);',
+'    if(hb<.55)continue;',
+'    float bx=(id+.3+.4*h11(id*3.1))*78.;float by=H-30.-26.*h11(id*5.9);',
+'    for(int k=0;k<3;k++){float ph=fract(uPhase*.12+float(k)/3.+hb*3.);',
+'      vec2 b=vec2(bx+sin(uPhase*1.3+ph*7.)*1.5,by-ph*24.);',
+'      float rb=(.8+1.1*h11(id+float(k)*1.7))*wsc;float fill=step(.62,h11(id*2.+float(k)));',
+'      float db=mix(abs(length(p-b)-rb)-.45,length(p-b)-rb*.8,fill);',
+'      A+=inkA(db,.55*(1.-smoothstep(.75,1.,ph))*step(wl+3.,b.y),.6);}',
 '  }',
-'  MOTT=.84+.26*fbm(ps*.045);',
-'',
-'  if(p.y>uTop-24.&&p.y<uBot+8.){',
-'    float wsc=mix(1.,.8,uSmall);',
-'    float wl=waterAt(p.x);',
-'    float depth=p.y-wl;float H=max(uBot-uTop,1.);',
-'    float under=smoothstep(-3.,6.,depth);',
-'    ps-=displace(p)*under;',
-// agua: aguada azulada muy leve que se hace más densa hacia el fondo, con haces de luz
-'    float rays=smoothstep(.5,.9,vn(vec2((p.x+p.y*.45)*.02,uPhase*.07)));',
-'    float wash=under*(.05+.17*smoothstep(0.,H,depth))*(1.-.35*rays)*(.9+.2*fbm(p*.012));',
-'    col=mix(col,vec3(.70,.73,.75),clamp(wash,0.,.5));',
-// feibai: con scroll rápido el pincel se seca en vetas
-'    float dry=clamp(abs(uVel)*1.3,0.,.6);',
-'    float fei=1.-dry*smoothstep(.56-.12*dry,.74,fbm(vec2(p.x*.21+p.y*.012,p.y*.012)));',
-'    float soft=max(1.,1.1/uScale);',
-'    float sc=mix(1.,.8,uSmall);',
-'    A+=inkA(kelp(ps,30.*sc,uBot-5.,11.,.6*wsc,H)+(fbm(ps*.09)-.5)*1.5,.14,soft+.8)*fei*under;',
-'    A+=inkA(kelp(ps,46.*sc,uBot-2.,23.,.8*wsc,H)+(fbm(ps*.08)-.5)*2.,.34,soft+.4)*fei*under;',
-'    A+=inkA(kelp(ps,66.*sc,uBot,37.,wsc,H)+(fbm(ps*.07)-.5)*2.4,.92,soft)*fei*under;',
-// línea del agua y fondo: trazos horizontales con pincel seco
-'    float dW=abs(p.y-wl)-(.7+1.3*fbm(vec2(p.x*.006,uPhase*.1)));',
-'    dW+=smoothstep(.5,.82,fbm(vec2(p.x*.05,(p.y-wl)*.8+4.)))*3.;',
-'    A+=inkA(dW,.72,1.);',
-'    float g0=uBot+(vn(vec2(ps.x*.01,37.))-.5)*6.;',
-'    float dG=abs(ps.y-g0)-(2.2+3.2*fbm(vec2(ps.x*.008,3.)));',
-'    dG+=smoothstep(.52,.78,fbm(vec2(ps.x*.035,(ps.y-g0)*.55)))*4.;',
-'    A+=inkA(dG,.9,1.1);',
-'    float bc=floor(ps.x/120.);float bh=h11(bc*4.7+1.);',                        // bolones sobre el fondo
-'    if(bh>.5){float bx=(bc+.25+.5*h11(bc*2.3))*120.;float br=(6.+9.*h11(bc*6.1))*wsc;',
-'      float db=max(sdEll(vec2(ps.x-bx,ps.y-g0+br*.3),vec2(br*1.35,br)),ps.y-g0-2.)+(fbm(ps*.08)-.5)*3.;',
-'      A+=inkA(db,.55,1.2);}',
-// burbujas: anillos que suben (y bajan si subes el scroll)
-'    float cwb=70.*wsc;float cb=floor(p.x/cwb);',
-'    for(int j=0;j<2;j++){',
-'      float id=cb+float(j)*.5;float hb=h11(id*7.3),hc=h11(id*3.1+2.);',
-'      float ph=fract(hb+uPhase*.06*(.6+hc));',
-'      vec2 b=vec2((cb+.3+.4*hc)*cwb+sin(uPhase*1.4+ph*9.)*3.,uBot-ph*(uBot-wl));',
-'      float rb=(1.2+1.8*hb)*wsc;',
-'      A+=inkA(abs(length(p-b)-rb)-.55,.7*step(wl+4.,b.y)*(1.-smoothstep(.85,1.,ph)),.7);',
-'    }',
-'  }',
-'',
-'  A=mix(A,ringA*.9,inDrop);',
+// línea del agua: una o dos pasadas de pincel que se afinan y se cortan
+'  float gap1=smoothstep(.3,.52,vn(vec2(p.x*.0045,2.)));',
+'  float th1=(.3+1.2*fbm(vec2(p.x*.011,uPhase*.05)))*gap1;',
+'  A+=inkA(abs(p.y-wl)-th1,.62,.9);',
+'  float gap2=smoothstep(.45,.62,vn(vec2(p.x*.006+9.,5.)));',
+'  A+=inkA(abs(p.y-wl-3.2-sin(p.x*.02)*.6)-(.25+.6*fbm(vec2(p.x*.02,3.)))*gap2,.3,.9);',
+'  A*=fei*.3+.7;',
 '  float hpap=vn(gl_FragCoord.xy*.5)*.55+vn(gl_FragCoord.xy*vec2(.07,.8))*.45;',
-'  A*=.86+.28*(1.-hpap);',                                                       // granulación del papel
+'  A*=.86+.28*(1.-hpap);',                                                        // granulación del papel
 '  col*=exp(-A*K);',
-'  col+=(h21(gl_FragCoord.xy+fract(uTime)*91.)-.5)/255.*2.;',
+// el fondo rocoso se disuelve en el pie de página
+'  float bt=bedTop(ps.x);',
+'  float bed=smoothstep(bt-7.,bt+5.,p.y+(fbm(vec2(p.x*.08,p.y*.2))-.5)*4.);',
+'  float rim=exp(-abs(p.y-bt)/2.5)*bed*.18;',                                       // borde que acumula pigmento
+'  col=mix(col,foot*(1.-rim),max(bed,smoothstep(H-6.,H-1.,p.y)));',
+'  col+=(h21(gl_FragCoord.xy)-.5)/255.*1.5;',
 '  gl_FragColor=vec4(col,1.);',
 '}'
   ].join('\n');
 
-  function sh(type, src){
-    var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('tinta:', gl.getShaderInfoLog(s)); return null; }
-    return s;
+  /* ── WebGL (reconstruible si el navegador pierde el contexto) ── */
+  var gl = null, prog = null, U = {};
+  function init(){
+    try {
+      gl = canvas.getContext('webgl', { antialias:false, alpha:false, depth:false, stencil:false, premultipliedAlpha:false, preserveDrawingBuffer:false, powerPreference:'low-power' })
+        || canvas.getContext('experimental-webgl');
+    } catch(e) { gl = null; }
+    if (!gl) return false;
+    function sh(type, src){
+      var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('huiro:', gl.getShaderInfoLog(s)); return null; }
+      return s;
+    }
+    var vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) return false;
+    prog = gl.createProgram();
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('huiro:', gl.getProgramInfoLog(prog)); return false; }
+    gl.useProgram(prog);
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(prog, 'a');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    ['uRes','uScale','uPhase','uGrow','uVel','uSmall','uTrail','uDrop'].forEach(function(n){ U[n] = gl.getUniformLocation(prog, n); });
+    return true;
   }
-  var vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
-  if (!vs || !fs) { document.documentElement.classList.add('no-ink'); return; }
-  var prog = gl.createProgram();
-  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('tinta:', gl.getProgramInfoLog(prog)); document.documentElement.classList.add('no-ink'); return; }
-  gl.useProgram(prog);
-  var buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-  var loc = gl.getAttribLocation(prog, 'a');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  var U = {};
-  ['uRes','uScale','uPhase','uTime','uTop','uBot','uGrow','uVel','uSmall','uTrail','uDrop'].forEach(function(n){ U[n] = gl.getUniformLocation(prog, n); });
+  if (!init()) { root.classList.add('no-ink'); return; }
 
   /* ── estado ── */
-  var TR = 8, trail = new Float32Array(TR*4), ti = 0;
+  var TR = 6, trail = new Float32Array(TR*4), ti = 0;
   var drops = new Float32Array(16), dAge = [-1,-1,-1,-1], di = 0;
-  var vw = 0, vh = 0, dpr = 1, quality = coarse ? .5 : .66, small = 0;
-  var bandTop = 0, bandH = 0, maxScroll = 1;
-  var sScroll = window.scrollY || 0, lastScroll = sScroll, vel = 0;
-  var phase = 0, t0 = performance.now(), last = t0, lastInput = t0;
-  var lastPt = null, raf = 0, slow = 0, ph = 0, top = 0, bot = 0, grow = 0, wasVisible = true;
+  var bw = 0, bh = 0, dpr = 1, quality = coarse ? .85 : 1, small = 0;
+  var sScroll = window.scrollY || 0, lastY = sScroll, vel = 0;
+  var phase = 0, last = performance.now(), lastInput = last;
+  var grow = .5, growT = .5, drawnGrow = -1, raf = 0, slow = 0, visible = true, lost = false, lastPt = null;
 
   function smooth(a, b, x){ x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
 
-  function measure(){
-    vw = window.innerWidth; vh = window.innerHeight;
-    small = vw < 640 ? 1 : 0;
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.max(2, Math.round(vw * dpr * quality));
-    canvas.height = Math.max(2, Math.round(vh * dpr * quality));
-    gl.viewport(0, 0, canvas.width, canvas.height);
+  function size(){
     var r = band.getBoundingClientRect();
-    bandTop = r.top + (window.scrollY || 0); bandH = r.height;
-    maxScroll = Math.max(1, document.documentElement.scrollHeight - vh);
-    step(performance.now());
-    draw(performance.now()); // sin cuadro negro al cambiar de tamaño
+    bw = r.width; bh = r.height;
+    small = window.innerWidth < 640 ? 1 : 0;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(2, Math.round(bw * dpr * quality)), h = Math.max(2, Math.round(bh * dpr * quality));
+    if (w !== canvas.width || h !== canvas.height) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+    drawnGrow = -1;
+    if (!lost) { step(performance.now()); draw(); }
   }
+  var rt = 0;
+  function sizeSoon(){ clearTimeout(rt); rt = setTimeout(size, 150); }
 
-  function track(x, y){
-    if (reduce) return;
-    var now = performance.now();
-    if (lastPt) {
-      var dx = x - lastPt.x, dy = y - lastPt.y, d = Math.sqrt(dx*dx + dy*dy);
-      if (d < 14) return;
-      var sp = d / Math.max(8, now - lastPt.t) * 1000;
-      trail[ti*4] = x; trail[ti*4+1] = y; trail[ti*4+2] = 0; trail[ti*4+3] = Math.min(1, Math.max(.3, sp / 1400));
-      ti = (ti + 1) % TR; lastInput = now;
-    }
-    lastPt = { x:x, y:y, t:now };
+  /* crecimiento: 0 cuando la franja asoma por abajo; 1 al final del recorrido posible */
+  function growTarget(){
+    var vh = window.innerHeight, maxScroll = document.documentElement.scrollHeight - vh;
+    if (maxScroll < 40) return .72;
+    var topNow = band.getBoundingClientRect().top;
+    var topAtEnd = topNow + (window.scrollY || 0) - maxScroll;
+    return smooth(0, 1, (vh - topNow) / Math.max(60, vh - topAtEnd));
   }
-  function nearBand(y){ return y > top - 80 && y < bot + 40; }
-  window.addEventListener('pointermove', function(e){ if ((e.pointerType === 'mouse' || e.pointerType === 'pen') && nearBand(e.clientY)) track(e.clientX, e.clientY); else lastPt = null; }, { passive:true });
-  window.addEventListener('touchmove', function(e){ var t = e.touches[0]; if (t && nearBand(t.clientY)) track(t.clientX, t.clientY); }, { passive:true });
-  window.addEventListener('touchstart', function(){ lastPt = null; }, { passive:true });
-
-  /* gota al tocar el papel (no en tarjetas, enlaces, textos ni modales) */
-  var BLOCK = 'a,button,.card,.modal-overlay,.modal-content,.site-header,.site-footer,h1,p,input,textarea,select,[role="button"]';
-  document.addEventListener('pointerdown', function(e){
-    if (reduce || (e.target.closest && e.target.closest(BLOCK))) return;
-    drops[di*4] = e.clientX; drops[di*4+1] = e.clientY; dAge[di] = 0;
-    di = (di + 1) % 4; lastInput = performance.now();
-  }, { passive:true });
 
   function step(now){
     var raw = Math.max(1e-3, (now - last) / 1000); last = now;
@@ -1319,72 +1316,118 @@ body{
     var prev = sScroll;
     sScroll += (y - sScroll) * (reduce ? 1 : 1 - Math.exp(-raw * 9));
     var v = (sScroll - prev) / raw;
-    vel += (Math.max(-1, Math.min(1, v / 1600)) - vel) * (1 - Math.exp(-raw * 6));
-    if (Math.abs(y - lastScroll) > .5) { lastInput = now; lastScroll = y; }
-    if (!reduce) phase += tdt * .5;
-    ph = phase + sScroll * .006;                         // el vaivén avanza y retrocede con el scroll
-    top = bandTop - y; bot = top + bandH;
-    // crecimiento: 0 cuando la franja asoma por abajo, 1 al final del recorrido posible
-    var topAtEnd = bandTop - maxScroll;
-    var g = (vh - (bandTop - sScroll)) / Math.max(60, vh - topAtEnd);
-    grow = smooth(0, 1, g);
-    for (var i = 0; i < TR; i++) { if (trail[i*4+3] > 0) { trail[i*4+2] += tdt; if (trail[i*4+2] > 3) trail[i*4+3] = 0; } }
-    var Rmax = small ? 40 : 52;
+    vel += (Math.max(-1, Math.min(1, v / 1500)) - vel) * (1 - Math.exp(-raw * 4));   // la corriente se asienta en ~1 s
+    if (Math.abs(y - lastY) > .5) { lastInput = now; lastY = y; }
+    growT = growTarget();
+    grow += (growT - grow) * (reduce ? 1 : 1 - Math.exp(-raw * 5));
+    if (!reduce) phase += tdt * .45;
+    for (var i = 0; i < TR; i++) { if (trail[i*4+3] > 0) { trail[i*4+2] += tdt; if (trail[i*4+2] > 2.5) trail[i*4+3] = 0; } }
     for (i = 0; i < 4; i++) {
       if (dAge[i] < 0) { drops[i*4+2] = 0; continue; }
-      dAge[i] += tdt;
-      var a = dAge[i];
-      drops[i*4+2] = Rmax * (1 - Math.exp(-a * 3.2)) * (1 - smooth(2.2, 6, a));
+      dAge[i] += tdt; var a = dAge[i];
+      drops[i*4+2] = (small ? 18 : 22) * (1 - Math.exp(-a * 4)) * (1 - smooth(1.2, 3.2, a));
       drops[i*4+3] = a;
-      if (a > 6.1) dAge[i] = -1;
+      if (a > 3.3) dAge[i] = -1;
       lastInput = now;
     }
     return raw;
   }
 
-  function draw(now){
-    if (!vw) return;
+  function draw(){
+    if (!bw || lost) return;
     gl.uniform2f(U.uRes, canvas.width, canvas.height);
-    gl.uniform1f(U.uScale, canvas.width / vw);
-    gl.uniform1f(U.uPhase, ph);
-    gl.uniform1f(U.uTime, (now - t0) / 1000);
-    gl.uniform1f(U.uTop, top); gl.uniform1f(U.uBot, bot);
+    gl.uniform1f(U.uScale, canvas.width / bw);
+    gl.uniform1f(U.uPhase, phase + sScroll * .008);      // el vaivén avanza y retrocede con el scroll
     gl.uniform1f(U.uGrow, grow); gl.uniform1f(U.uVel, vel);
     gl.uniform1f(U.uSmall, small);
     gl.uniform4fv(U.uTrail, trail); gl.uniform4fv(U.uDrop, drops);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    drawnGrow = grow;
     if (!canvas.classList.contains('is-ready')) canvas.classList.add('is-ready');
   }
 
   function frame(now){
+    raf = 0;
+    if (lost) return;
     var raw = step(now);
-    var visible = bot > -20 && top < vh + 20;
     var dropsOn = dAge[0] >= 0 || dAge[1] >= 0 || dAge[2] >= 0 || dAge[3] >= 0;
-    var idle = now - lastInput > 4000;
-    var skip = idle && (Math.floor(now / 16.7) % 2 === 1);          // en reposo, 30 fps
-    var moving = Math.abs(window.scrollY - sScroll) > .3;
-    // solo se pinta si hay algo que ver (franja o gotas); al salir de vista, un último cuadro limpio
-    var need = visible || dropsOn || wasVisible;
-    if (reduce) need = need && (moving || dropsOn || visible !== wasVisible);
-    if (need && !skip) {
-      draw(now);
-      if (raw > .034 && quality > .36 && now - t0 > 2500) { slow++; if (slow > 20) { quality -= .08; slow = 0; measure(); } } else slow = Math.max(0, slow - 1);
+    var idle = now - lastInput;
+    var need;
+    if (reduce) need = Math.abs(grow - drawnGrow) > .002;                     // sin animación: solo cuando el scroll cambia algo
+    else need = idle < 9000 || dropsOn;                                         // en reposo largo, la tinta se queda quieta
+    if (visible && need && !(idle > 4000 && !dropsOn && (Math.floor(now / 16.7) % 2))) {
+      draw();
+      if (raw > .034 && quality > .5 && idle < 4000) { if (++slow > 24) { quality -= .12; slow = 0; size(); } } else slow = Math.max(0, slow - 1);
     }
-    wasVisible = visible;
     raf = requestAnimationFrame(frame);
   }
+  function wake(){ lastInput = performance.now(); if (!raf && !lost && !document.hidden) raf = requestAnimationFrame(frame); }
 
-  window.addEventListener('resize', measure);
-  window.addEventListener('orientationchange', function(){ setTimeout(measure, 250); });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
-  window.addEventListener('load', function(){ measure(); setTimeout(measure, 1300); });
-  document.addEventListener('visibilitychange', function(){
-    if (document.hidden) cancelAnimationFrame(raf);
-    else { last = performance.now(); raf = requestAnimationFrame(frame); }
-  });
-  canvas.addEventListener('webglcontextlost', function(e){ e.preventDefault(); cancelAnimationFrame(raf); canvas.classList.remove('is-ready'); });
-  measure();
-  raf = requestAnimationFrame(frame);
+  /* cursor o dedo cerca de la franja: leve oleaje */
+  function track(cx, cy){
+    if (reduce) return;
+    var r = band.getBoundingClientRect();
+    if (cy < r.top - 30 || cy > r.bottom + 10) { lastPt = null; return; }
+    var x = cx - r.left, y = cy - r.top, now = performance.now();
+    if (lastPt) {
+      var dx = x - lastPt.x, dy = y - lastPt.y, d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 12) return;
+      trail[ti*4] = x; trail[ti*4+1] = y; trail[ti*4+2] = 0; trail[ti*4+3] = Math.min(1, Math.max(.3, d / Math.max(8, now - lastPt.t) * 1000 / 1400));
+      ti = (ti + 1) % TR; wake();
+    }
+    lastPt = { x:x, y:y, t:now };
+  }
+  window.addEventListener('pointermove', function(e){ if (e.pointerType === 'mouse' || e.pointerType === 'pen') track(e.clientX, e.clientY); }, { passive:true });
+  window.addEventListener('touchmove', function(e){ var t = e.touches[0]; if (t) track(t.clientX, t.clientY); }, { passive:true });
+  window.addEventListener('scroll', wake, { passive:true });
+
+  /* circulitos de tinta: clic o toque (sin arrastre) sobre el papel */
+  var BLOCK = 'a,button,.card,.modal-overlay,.site-header,.site-footer,h1,p,input,textarea,select,label,[role="button"]';
+  var down = null;
+  document.addEventListener('pointerdown', function(e){ down = { x:e.clientX, y:e.clientY, t:performance.now(), ok:!(e.target.closest && e.target.closest(BLOCK)) }; }, { passive:true });
+  document.addEventListener('pointerup', function(e){
+    if (!down || !down.ok || reduce) { down = null; return; }
+    var dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (dx*dx + dy*dy > 100 || performance.now() - down.t > 700) { down = null; return; }
+    down = null;
+    ring(e.clientX + window.scrollX, e.clientY + window.scrollY, small ? 20 : 24);
+    var r = band.getBoundingClientRect();
+    if (e.clientY > r.top - 6 && e.clientY < r.bottom) {
+      drops[di*4] = e.clientX - r.left; drops[di*4+1] = e.clientY - r.top; dAge[di] = 0; di = (di + 1) % 4; wake();
+    }
+  }, { passive:true });
+  function wobbly(r, seed){
+    var pts = [], n = 30;
+    for (var i = 0; i <= n; i++) {
+      var a = i / n * Math.PI * 2;
+      var rr = r * (1 + .045 * Math.sin(a * 3 + seed) + .03 * Math.sin(a * 5 + seed * 2.3));
+      pts.push((30 + Math.cos(a) * rr).toFixed(2) + ' ' + (30 + Math.sin(a) * rr).toFixed(2));
+    }
+    return 'M' + pts.join('L') + 'Z';
+  }
+  function ring(x, y, R){
+    var s = Math.random() * 6.28;
+    var el = document.createElement('span');
+    el.className = 'gota'; el.setAttribute('aria-hidden', 'true');
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.innerHTML = '<svg viewBox="0 0 60 60"><path d="' + wobbly(R, s) + '" stroke-width="1.3"/><path d="' + wobbly(R * .64, s + 1) + '" stroke-width="1"/><path d="' + wobbly(R * .32, s + 2) + '" stroke-width=".8"/></svg>';
+    document.body.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 2300);
+  }
+
+  /* solo trabaja mientras la franja está a la vista */
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function(es){ visible = es[0].isIntersecting; if (visible) { drawnGrow = -1; wake(); } }, { rootMargin:'40px' }).observe(band);
+  }
+  if ('ResizeObserver' in window) new ResizeObserver(sizeSoon).observe(band);
+  window.addEventListener('resize', sizeSoon);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
+  window.addEventListener('load', size);
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else { last = performance.now(); wake(); } });
+  canvas.addEventListener('webglcontextlost', function(e){ e.preventDefault(); lost = true; cancelAnimationFrame(raf); raf = 0; root.classList.add('no-ink'); });
+  canvas.addEventListener('webglcontextrestored', function(){ if (init()) { lost = false; root.classList.remove('no-ink'); size(); wake(); } });
+  size();
+  wake();
 })();
 </script>
 <!--/TINTA-->
