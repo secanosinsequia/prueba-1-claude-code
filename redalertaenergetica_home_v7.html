@@ -59,7 +59,7 @@ body{
    ══════════════════════════════ */
 .site-header{
   position:sticky;top:0;z-index:100;
-  background:rgba(227,222,211,0.88);
+  background:rgba(227,222,211,0.94);
   backdrop-filter:blur(18px);
   -webkit-backdrop-filter:blur(18px);
   border-bottom:1px solid rgba(46,42,36,0.08);
@@ -642,10 +642,11 @@ body{
 .no-ink .mar{display:none}
 .ink-lost .mar canvas{opacity:0}
 .ink-lost .mar{background:linear-gradient(to bottom,transparent 55%,#373229)}
-@media(max-width:540px){.mar{height:clamp(92px,13vh,110px)}}
+@media(max-width:540px){.mar{height:clamp(92px,13vh,110px);margin-top:16px}}
 
 /* circulitos de tinta al hacer clic en el papel */
-.gotas{position:absolute;left:0;top:0;width:100%;height:0;overflow:hidden;pointer-events:none;z-index:3}
+.gotas{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:150}
+.gotas-pista{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
 .gota{position:absolute;width:0;height:0;pointer-events:none}
 .gota svg{position:absolute;left:-30px;top:-30px;width:60px;height:60px;overflow:visible}
 .gota path{fill:none;stroke:#2e2a24;stroke-linecap:round;vector-effect:non-scaling-stroke;transform-origin:30px 30px;transform-box:view-box;animation:gota-ring 1.9s cubic-bezier(.2,.7,.3,1) both}
@@ -656,8 +657,8 @@ body{
 /* pincelada bajo "antes": se dibuja al cargar, en el mismo idioma del lienzo */
 .intro h1 em{position:relative;display:inline-block}
 .intro h1 em::after{
-  content:'';position:absolute;left:-2%;right:-3%;bottom:-.15em;height:.36em;
-  background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 26' preserveAspectRatio='none'%3E%3Cpath d='M3 12.5c4-4.5 12-5.2 22-5 22 .4 48 1.6 76 1.8 34 .2 62 .8 86-.6 4-.2 8 .6 10 2-8 2.4-22 3.6-38 4-34 .8-66 1.2-96 2.4-20 .8-40 3.4-52 4.4C3 22 .8 17.8 3 12.5z' fill='%232e2a24' fill-opacity='.9'/%3E%3Cpath d='M104 11.2c32-.2 58-.4 88-1.2M92 13.4c34-.3 64-.6 94-1.3M124 12.3c22-.2 42-.4 62-.9M140 14.2c14 0 28-.2 40-.6' stroke='%23e3ded3' stroke-width='.9' stroke-opacity='.85' fill='none'/%3E%3Cpath d='M180 13.6c6-.2 11-.8 16-2' stroke='%232e2a24' stroke-opacity='.65' stroke-width='1.1' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  content:'';position:absolute;left:-2%;right:-9%;bottom:-.15em;height:.36em;
+  background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 26' preserveAspectRatio='none'%3E%3Cpath d='M3 12.5c4-4.5 12-5.2 22-5 22 .4 48 1.6 76 1.8 34 .2 62 .8 86-.6 4-.2 8 .6 10 2-8 2.4-22 3.6-38 4-34 .8-66 1.2-96 2.4-20 .8-40 3.4-52 4.4C3 22 .8 17.8 3 12.5z' fill='%232e2a24' fill-opacity='.76'/%3E%3Cpath d='M104 11.2c32-.2 58-.4 88-1.2M92 13.4c34-.3 64-.6 94-1.3M124 12.3c22-.2 42-.4 62-.9M140 14.2c14 0 28-.2 40-.6' stroke='%23e3ded3' stroke-width='.9' stroke-opacity='.85' fill='none'/%3E%3Cpath d='M176 13.6c10-.3 20-1 30-2.6M184 11.2c8-.4 16-1.2 24-2.6M170 15c12-.2 24-.8 36-2' stroke='%232e2a24' stroke-opacity='.5' stroke-width='.9' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   clip-path:inset(0 100% 0 0);
   animation:brush-in 1.05s cubic-bezier(.65,0,.35,1) .7s forwards;
 }
@@ -971,7 +972,7 @@ body{
         if (Math.hypot(e.changedTouches[0].clientX - startX, e.changedTouches[0].clientY - startY) > 12) return;
         const wasActive = card.classList.contains('is-active');
         if (isLink && wasActive) return; /* segundo toque: dejar navegar */
-        if (isLink) e.preventDefault();
+        if (isLink || !wasActive) e.preventDefault(); /* primer toque: solo desplegar */
         cards.forEach(c => c.classList.remove('is-active'));
         if (!wasActive) card.classList.add('is-active');
       }, { passive: false });
@@ -1095,9 +1096,12 @@ body{
   var small = window.innerWidth < 640 ? 1 : 0;
 
   /* ── circulitos de tinta (DOM; no dependen de WebGL) ── */
-  var layer = document.createElement('div');
-  layer.className = 'gotas'; layer.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(layer);
+  var layer = document.createElement('div'), pista = document.createElement('div');
+  layer.className = 'gotas'; layer.setAttribute('aria-hidden', 'true'); pista.className = 'gotas-pista';
+  layer.appendChild(pista); document.body.appendChild(layer);
+  var live = 0;
+  function follow(){ pista.style.transform = 'translate(' + (-window.scrollX) + 'px,' + (-window.scrollY) + 'px)'; }
+  window.addEventListener('scroll', function(){ if (live) follow(); }, { passive:true });
   var BLOCK = 'a,button,.card,.modal-overlay,.site-header,.site-footer,h1,p,input,textarea,select,label,[role="button"]';
   var down = null, onDrop = null;
   document.addEventListener('pointerdown', function(e){ down = e.button === 0 ? { x:e.clientX, y:e.clientY, t:performance.now(), ok:!(e.target.closest && e.target.closest(BLOCK)) } : null; }, { passive:true });
@@ -1121,13 +1125,13 @@ body{
   }
   function ring(x, y, R){
     var s = Math.random() * 6.28;
-    layer.style.height = document.documentElement.scrollHeight + 'px';
+    follow(); live++;
     var el = document.createElement('span');
     el.className = 'gota';
     el.style.left = x + 'px'; el.style.top = y + 'px';
     el.innerHTML = '<svg viewBox="0 0 60 60"><path d="' + wobbly(R, s) + '" pathLength="1" stroke-dasharray=".88 .12" stroke-dashoffset="' + Math.random().toFixed(2) + '" stroke-width="1.5"/><path d="' + wobbly(R * .55, s + 1) + '" stroke-width=".9"/></svg>';
-    layer.appendChild(el);
-    setTimeout(function(){ el.remove(); }, 2300);
+    pista.appendChild(el);
+    setTimeout(function(){ el.remove(); live--; }, 2300);
   }
 
   /* ── shader ── */
@@ -1154,16 +1158,7 @@ body{
 'float sdEll(vec2 p,vec2 r){float k0=length(p/r),k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-4);}',
 // guarda la forma más cercana y su carga de tinta
 'void keep(inout vec2 r,float d,float t){if(d<r.x)r=vec2(d,t);}',
-// lámina en cinta: angosta, larga, arrugada; carga de tinta alta en la base y seca en la punta
-'vec2 ribbon(vec2 lp,vec2 dir,float Lb,float W,float wav){',
-'  float al=dot(lp,dir),ac=dot(lp,vec2(dir.y,-dir.x));',
-'  float x=clamp(al/Lb,0.,1.);',
-'  ac-=wav*x+sin(al*.45)*.35*W*x;',
-'  float w=W*pow(sin(3.1416*x),.45)*(1.-.35*x);',
-'  float d=(al<0.||al>Lb)?length(vec2(al<0.?al:al-Lb,ac)):abs(ac)-w;',
-'  return vec2(d,1.08-.5*x);}',
-'',
-'float H,W,SURF,CUR,SIDE;',
+'float H,W,SURF,CUR,SIDE,INK;',
 // fondo rocoso: borde irregular y pocas piedras bajas y redondeadas
 'float bedTop(float x){',
 '  float b=H-17.+(vn(vec2(x*.03,1.))-.5)*6.+(vn(vec2(x*.11,4.))-.5)*2.;',
@@ -1171,7 +1166,6 @@ body{
 '  float bx=(c+.3+.4*h11(c*2.3))*230.;float bw=16.+18.*h11(c*6.1);float bh=4.+4.*h11(c*3.3);',
 '  float t=clamp(1.-abs(x-bx)/bw,0.,1.);',
 '  return b-on*bh*t*t*(3.-2.*t);}',
-// densidad del bosque según la posición: masa densa a la derecha, agua abierta a la izquierda
 'float mass(float x){float u=x/W;',
 '  return max(smoothstep(.42,.62,u)*(1.-smoothstep(.93,1.02,u)),.55*smoothstep(.08,.14,u)*(1.-smoothstep(.2,.27,u)));}',
 '',
@@ -1183,9 +1177,17 @@ body{
 '',
 'float stipeX(float v,float L,float x0,float lean,float A,float sid,float reach){',
 '  float q=clamp(v/L,0.,1.);',
-'  return x0+lean*v+A*pow(q,1.5)*sin(uPhase*.8+v*.035+sid)+A*.35*q*sin(uPhase*1.5+v*.08+sid*2.)+SIDE*pow(q,5.)*9.*reach;}', // se curva hacia su dosel
+'  return x0+lean*v+A*pow(q,1.5)*sin(uPhase*.8+v*.035+sid)+A*.35*q*sin(uPhase*1.5+v*.08+sid*2.)+SIDE*pow(q,4.)*10.*reach;}',
 '',
-// una capa de matas; detail=0 dibuja solo tallos (fondo, en aguada)
+// lámina en cinta que cae: ancha al medio, punta fina, onda lenta y leve curvatura hacia abajo
+'vec2 blade(vec2 lp,vec2 dir,float Lb,float Wd,float sd,float ph){',
+'  float al=dot(lp,dir),ac=dot(lp,vec2(dir.y,-dir.x));',
+'  float x=clamp(al/Lb,0.,1.);',
+'  ac-=sin(al*.11+ph)*2.6*x+sd*x*x*Lb*.09;',
+'  float w=Wd*pow(sin(3.1416*x),.7)*(1.-.62*x);',
+'  float d=(al<0.||al>Lb)?length(vec2(al<0.?al:al-Lb,ac)):abs(ac)-w;',
+'  return vec2(d,1.08-.55*x);}',
+'',
 'vec2 kelp(vec2 p,float cw,float seed,float wsc,float detail){',
 '  vec2 r=vec2(1e4,1.);float ci=floor(p.x/cw);',
 '  float A=(7.+13.*uGrow+14.*abs(uVel))*wsc*uAmp;',
@@ -1193,49 +1195,53 @@ body{
 '    float id=ci+float(j);',
 '    float xt=(id+.25+.5*h11(id*1.37+seed))*cw;',
 '    float hp=h11(id*9.1+seed*3.3);',
-'    if(hp>.2+.78*mass(xt))continue;',                                           // presencia según la masa del bosque
+'    if(hp>.2+.78*mass(xt))continue;',
 '    float g=bedTop(xt)+1.;',
 '    float fullH=max(g-SURF-2.,8.);',
 '    float u=p.x-xt,v=g-p.y;',
-'    if(v<-5.||v>fullH+5.)continue;',
-'    if(abs(u)>14.+fullH*(.12+.3*abs(CUR))+A*1.4+(70.+detail*20.)*wsc)continue;',
+'    if(v<-5.||v>fullH+6.)continue;',
+'    if(abs(u)>14.+fullH*(.12+.3*abs(CUR))+A*1.4+(80.+detail*20.)*wsc)continue;',
 '    float n=2.+floor(h11(id*4.1+seed)*2.99);',
-'    keep(r,sdEll(vec2(u,v+.5),vec2((3.2+1.6*hp)*wsc,(2.+.7*hp)*wsc)),1.2);',         // rizoide: acento casi negro
+'    keep(r,sdEll(vec2(u,v+.5),vec2((3.4+1.6*hp)*wsc,(2.1+.7*hp)*wsc)),1.2);',
 '    for(int k=0;k<4;k++){',
 '      float fk=float(k);if(fk>=n)continue;',
 '      float sid=id*7.13+fk*1.91+seed;',
-'      float ms=h11(sid*1.3)>.6?1.:.5+.42*h11(sid);',                             // solo algunos tallos llegan arriba
+'      float ms=h11(sid*1.3)>.62?1.:.5+.42*h11(sid);',
 '      float L=fullH*mix(.55,1.,uGrow)*ms;',
 '      float reach=smoothstep(.9,1.,L/fullH);',
-'      float lean=(fk-(n-1.)*.5)*.14+CUR*.28;',
+'      float lean=(fk-(n-1.)*.5)*.14+CUR*.26;',
 '      float x0=(fk-(n-1.)*.5)*1.6*wsc;',
 '      float vv=clamp(v,0.,L);float q=vv/L;',
 '      float us=u-stipeX(vv,L,x0,lean,A,sid,reach);',
-'      float brk=q>.62?smoothstep(.72,.95,vn(vec2(sid*3.,v*.2)))*1.6*(q-.62)/.38:0.;', // el pincel se seca arriba
-'      keep(r,v<0.?1e4:(v>L?length(vec2(us,v-L))-.6:abs(us)*.92-mix(2.2,.6,q)*wsc+brk),1.12-.4*q);',
+'      float wS=(mix(2.5,.5,q)+.55*exp(-pow((q-.45)/.13,2.)))*wsc;',              // presión: base cargada, un abultamiento, punta fina
+'      float brk=q>.62?smoothstep(.72,.95,vn(vec2(sid*3.,v*.2)))*1.6*(q-.62)/.38:0.;',
+'      keep(r,v<0.?1e4:(v>L?length(vec2(us,v-L))-.5:abs(us)*.92-wS+brk),1.14-.42*q);',
 '      if(detail>.5){',
-'        float S=(13.+9.*h11(sid*2.9))*wsc;float n0=floor(v/S);',
+'        float S=(18.+14.*h11(sid*2.9))*wsc;float n0=floor(v/S);',
 '        for(int b=0;b<2;b++){',
-'          float nb=n0+float(b);float vb=nb*S;',
-'          if(vb<L*.2||vb>L-4.||h11(nb*4.3+sid)<.32)continue;',
+'          float nb=n0+float(b);float vb=nb*S+(h11(nb+sid)-.5)*6.;',
+'          if(vb<L*.18||vb>L-1.||h11(nb*4.3+sid)<.4)continue;',
 '          float hb=h11(nb*3.7+sid);',
-'          float sd=hb<.18?-SIDE:SIDE;',
+'          float up=step(hb,.16);',                                                // alguna contra la corriente, más corta
+'          float sd=mix(SIDE,-SIDE,up);',
 '          float qb=vb/L;',
 '          vec2 lp=vec2(u,v)-vec2(stipeX(vb,L,x0,lean,A,sid,reach),vb);',
-'          float ang=.5+.4*hb+.1*sin(uPhase*1.2+nb);',                              // caen 30–50° aguas abajo
-'          vec2 dir=vec2(sd*cos(ang),-sin(ang));',
-'          float Lb=(34.+30.*hb)*wsc*(.55+.45*qb)*(sd==SIDE?1.:.5);',
-'          vec2 rb=ribbon(lp,dir,Lb,1.9*wsc,sin(dot(lp,dir)*.2+uPhase*2.2+nb)*2.*wsc);',
-'          keep(r,rb.x,rb.y);',
-'          keep(r,length(lp-dir*1.4*wsc)-1.35*wsc,1.15);',                           // flotador en la base
+'          float ang=.18+.36*hb+.08*sin(uPhase*1.2+nb);',                          // 60–80° desde la vertical
+'          vec2 dir=normalize(vec2(sd*cos(ang),-sin(ang)));',
+'          float Lb=(44.+36.*hb)*wsc*(.5+.5*qb)*mix(1.,.45,up)*smoothstep(0.,14.,L-1.-vb);', // se despliega al crecer
+'          vec2 bb=blade(lp,dir,Lb,2.3*wsc,sd,uPhase*2.+nb);keep(r,bb.x,bb.y);',
+'          keep(r,length(lp-dir*1.5*wsc)-1.4*wsc,1.15);',
 '        }',
-'        if(reach>.01){',                                                         // dosel: cintas tendidas aguas abajo
-'          vec2 tp=vec2(u,v)-vec2(stipeX(L,L,x0,lean,A,sid,reach),L-.6);',
-'          for(int b=0;b<2;b++){float fb=float(b);float hb=h11(sid+fb*1.7);',
-'            vec2 dir=normalize(vec2(SIDE,-.05-.12*fb));',
-'            float Lb=(34.+40.*hb)*wsc*reach*(1.-.35*fb);',
-'            vec2 rb=ribbon(tp-vec2(0.,fb*1.6),dir,Lb,1.7*wsc,sin(dot(tp,dir)*.14+uPhase*1.8+fb)*1.5*wsc);',
-'            keep(r,rb.x,rb.y*.95);}',
+'        if(reach>.01){',                                                        // dosel: mata floja de cintas que cuelgan bajo la superficie
+'          vec2 tp=vec2(u,v)-vec2(stipeX(L,L,x0,lean,A,sid,reach),L-.8);',
+'          keep(r,sdEll(tp,vec2(3.4,2.2)*wsc*reach),1.2);',                        // pozo de tinta donde el tallo toca la superficie
+'          for(int b=0;b<4;b++){float fb=float(b);float hb=h11(sid+fb*1.7);',
+'            float sd=fb<2.5?SIDE:-SIDE;',
+'            float ang=.08+.5*hb;',
+'            vec2 dir=normalize(vec2(sd*cos(ang),-sin(ang)));',
+'            float Lb=(16.+18.*hb)*wsc*reach*(fb<2.5?1.:.6);',
+'            vec2 bb=blade(tp-vec2(sd*fb*2.5,fb*.8),dir,Lb,1.9*wsc,sd,uPhase*1.7+fb);',
+'            keep(r,bb.x,bb.y*.95);}',
 '        }',
 '      }',
 '    }',
@@ -1251,10 +1257,12 @@ body{
 'void main(){',
 '  vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y)/uScale;',
 '  H=uRes.y/uScale;W=uRes.x/uScale;SURF=mix(10.,9.,uSmall);',
-'  CUR=clamp(.55*sin(uPhase*.22)+uVel*1.2,-1.,1.);SIDE=CUR>=0.?1.:-1.;',
-'  vec3 paper=vec3(.890,.871,.827);',                                              // el mismo papel de la página
-'  vec3 foot=vec3(.216,.200,.175);',                                               // el pie de página sobre ese papel
-'  vec3 K=vec3(1.62,1.66,1.74);',                                                  // a plena carga la tinta llega al tono del pie
+'  CUR=clamp(.42+.22*sin(uPhase*.22)+uVel*1.3,-1.,1.);',                            // corriente continua: sin saltos de lado
+'  SIDE=clamp(CUR*2.2,-1.,1.);',
+'  INK=smoothstep(.1,.75,uGrow);',                                                  // la tinta oscura entra a medida que crece
+'  vec3 paper=vec3(.890,.871,.827);',
+'  vec3 foot=vec3(.216,.200,.175);',
+'  vec3 K=vec3(1.62,1.66,1.74);',
 '  float hpap=vn(gl_FragCoord.xy*.5)*.55+vn(gl_FragCoord.xy*vec2(.07,.8))*.45;',
 '  float bt=bedTop(p.x);',
 '  MOTT=.84+.26*vn(p*.08);',
@@ -1263,36 +1271,39 @@ body{
 '  float under=smoothstep(wl-1.,wl+3.,p.y);',
 '  vec3 col=paper;',
 '  float A=0.;',
-// superficie: solo tramos sueltos de pincel (el dosel flotante sugiere el resto)
-'  float gv=vn(vec2(p.x*.0042,2.));',
-'  float gap=smoothstep(.55,.64,gv)*(.4+.6*mass(p.x));',
-'  float pool=smoothstep(.55,.59,gv)-smoothstep(.59,.7,gv);',
+// superficie: pocos trazos sueltos, sobre todo cerca del bosque; más tenue en la primera vista
+'  float gv=vn(vec2(p.x*.015,31.7));',
+'  float gap=smoothstep(.6,.68,gv)*(.25+.75*mass(p.x));',
+'  float pool=smoothstep(.6,.63,gv)-smoothstep(.63,.74,gv);',
 '  float th=(mix(.3,1.2,fbm(vec2(p.x*.01,uPhase*.05)))+pool*1.3)*gap;',
-'  A+=inkA(abs(p.y-wl)-th,.7,.8)*smoothstep(0.,.25,gap);',
+'  A+=inkA(abs(p.y-wl)-th,.7*mix(.3,1.,INK),.8)*smoothstep(0.,.25,gap);',
 '  if(p.y>wl-3.&&p.y<bt+3.){',
 '    vec2 ps=p-dt*under;',
-'    for(int i=3;i>=0;i--){vec4 D=uDrop[i];if(D.z<=.5)continue;',                 // las gotas apartan el huiro, sin borrar
+'    for(int i=3;i>=0;i--){vec4 D=uDrop[i];if(D.z<=.5)continue;',
 '      vec2 dv=ps-D.xy;float dd=length(dv)/(D.z*1.6);',
 '      ps=D.xy+dv*(1.-.55*exp(-dd*dd));}',
 '    MOTT=.84+.26*vn(ps*.08);',
 '    float wsc=mix(1.,.86,uSmall);',
 '    float dry=clamp(abs(uVel)*1.3,0.,.6);',
 '    float fei=1.-dry*smoothstep(.56-.12*dry,.74,vn(vec2(p.x*.25+p.y*.02,p.y*.02)));',
-'    float soft=max(.8,.9/uScale);',
+'    float soft=max(.8,.9/uScale)+hpap*.5;',                                          // borde que sangra según la fibra del papel
 '    vec2 k0=kelp(ps,44.*wsc,11.,.62*wsc,0.);',
-'    A+=inkA(k0.x+(vn(ps*.12)-.5)*2.5,.09,3.)*under;',                               // fondo: aguada pálida
+'    A+=inkA(k0.x+(vn(ps*.12)-.5)*2.5,.1,3.)*under;',
 '    vec2 k1=kelp(ps,60.*wsc,23.,.8*wsc,1.);',
-'    A+=inkA(k1.x+(vn(ps*.1)-.5)*1.6,.26*k1.y,soft+.9)*fei*under;',
+'    A+=inkA(k1.x+(vn(ps*.1)-.5)*1.6,.26*k1.y*mix(.55,1.,INK),soft+.9)*fei*under;',
 '    vec2 k2=kelp(ps,80.*wsc,37.,wsc,1.);',
-'    A+=inkA(k2.x+(fbm(ps*.08)-.5)*1.5,.82*k2.y,soft)*fei*under;',
-'    float cb=floor(p.x/120.);',                                                  // alguna burbuja suelta
-'    float hb=h11(cb*7.3+2.);',
-'    if(hb>.72){float bx=(cb+.3+.4*h11(cb*3.1))*120.;float ph=fract(uPhase*.1+hb*5.);',
+'    A+=inkA(k2.x+(fbm(ps*.08)-.5)*1.5,.84*k2.y*mix(.32,1.,INK),soft)*fei*under;',
+'    float cb=floor(p.x/300.);',                                                     // piedras claras delante del lecho
+'    if(h11(cb*5.3+9.)>.45){float sx=(cb+.25+.5*h11(cb*1.9))*300.;float sr=(20.+14.*h11(cb*2.7))*wsc;',
+'      float sy=bedTop(sx)+2.;',
+'      float ds=max(sdEll(vec2(p.x-sx,p.y-sy),vec2(sr,sr*.34)),p.y-sy-1.)+(vn(p*.3)-.5)*1.2;',
+'      A+=inkA(ds,.34,1.2);}',
+'    float bc=floor(p.x/120.);float hb=h11(bc*7.3+2.);',
+'    if(hb>.72){float bx=(bc+.3+.4*h11(bc*3.1))*120.;float ph=fract(uPhase*.1+hb*5.);',
 '      vec2 b=vec2(bx+sin(uPhase*1.3+ph*7.)*1.5,bt-10.-ph*(bt-wl-14.));',
-'      float rb=(1.+1.4*h11(cb+1.7))*wsc;',
+'      float rb=(1.+1.4*h11(bc+1.7))*wsc;',
 '      A+=inkA(abs(length(p-b)-rb)-.5,.5*(1.-smoothstep(.8,1.,ph))*step(wl+3.,b.y),.6);}',
 '  }',
-// el lecho: borde nítido de pincel seco, sangrado corto hacia arriba, granulación
 '  float edge=bt+(vn(vec2(p.x*.35,p.y*.3))-.5)*1.4;',
 '  A+=.22*exp(-max(edge-p.y,0.)/2.2)*step(p.y,edge);',
 '  A*=.86+.28*(1.-hpap);',
@@ -1343,7 +1354,7 @@ body{
   var bw = 0, bh = 0, dpr = 1, quality = coarse ? .75 : .85, docH = 0, slowRun = 0;
   var sScroll = window.scrollY || 0, lastY = sScroll, vel = 0, amp = 1;
   var phase = 0, last = performance.now(), lastInput = last;
-  var grow = reduce ? .8 : .5, drawnGrow = -1, raf = 0, visible = false, lost = false, ready = false, lastPt = null;
+  var lastDraw = 0, grow = reduce ? .8 : .5, drawnGrow = -1, raf = 0, visible = false, lost = false, ready = false, lastPt = null;
 
   function smooth(a, b, x){ x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
 
@@ -1419,7 +1430,9 @@ body{
     if (!visible) return;                                                   // fuera de vista: el bucle se detiene
     if (reduce) { if (Math.abs(grow - drawnGrow) > .002) draw(); return; }  // un cuadro y listo
     if (idle > 7000 && !dropsOn) { draw(); return; }                        // quieto: último cuadro y a descansar
-    if (!(idle > 2500 && !dropsOn && (Math.floor(now / 16.7) % 2))) {       // tras 2,5 s sin tocar nada, 30 fps
+    var gapMs = idle > 2500 && !dropsOn ? 32 : 15.5;                        // 60 fps tope (30 tras 2,5 s sin tocar nada), también en pantallas de 120 Hz
+    if (now - lastDraw >= gapMs) {
+      lastDraw = now;
       draw();
       if (raw > .05) { if (++slowRun >= 3 && quality > .61) { quality = Math.max(.6, quality * .85); slowRun = 0; size(); } }
       else slowRun = 0;
@@ -1471,7 +1484,7 @@ body{
   /* se prepara al acercarse a la vista (o en un momento libre, si no hay IntersectionObserver) */
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(function(es){ if (es[0].isIntersecting) start(); }, { rootMargin:'500px 0px' }).observe(band);
-    new IntersectionObserver(function(es){ visible = es[0].isIntersecting; if (visible) { drawnGrow = -1; wake(); } }, { rootMargin:'40px' }).observe(band);
+    new IntersectionObserver(function(es){ visible = es[0].isIntersecting; if (visible) { sScroll = lastY = window.scrollY || 0; vel = 0; drawnGrow = -1; wake(); } }, { rootMargin:'40px' }).observe(band);
   } else {
     visible = true;
     (window.requestIdleCallback || function(f){ setTimeout(f, 600); })(start);
