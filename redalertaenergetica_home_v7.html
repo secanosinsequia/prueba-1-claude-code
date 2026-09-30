@@ -1201,7 +1201,7 @@ body{
 '  float ext=cw*.95+under*(A*1.6+34.*wsc+80.*wsc);',
 '  for(int j=-2;j<=2;j++){',
 '    float id=ci+float(j);',
-'    if(h11(id*9.1+seed*3.3)<.12||vn(vec2(id*cw*.0023,seed))<.34)continue;',  // arboledas y claros (yohaku)
+'    if(h11(id*9.1+seed*3.3)<.12||vn(vec2(id*cw*.0023,seed))<mix(.34,.16,uSmall))continue;',  // arboledas y claros (yohaku)
 '    float r1=h11(id*1.37+seed);',
 '    float xt=(id+.2+.6*r1)*cw;',
 '    if(abs(p.x-xt)>ext)continue;',
