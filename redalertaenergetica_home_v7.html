@@ -431,6 +431,7 @@ body{
   transition:color 0.2s;
   letter-spacing:0.02em;
 }
+.footer-links a:focus-visible{outline:3px solid rgba(240,234,216,.8);outline-offset:3px;border-radius:4px}
 .footer-links a:hover,.footer-links a:focus-visible{
   color:rgba(240,234,216,1);
 }
@@ -645,8 +646,8 @@ body{
 @media(max-width:540px){.mar{height:clamp(92px,13vh,110px);margin-top:16px}}
 
 /* circulitos de tinta al hacer clic en el papel */
-.gotas{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:150}
-.gotas-pista{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
+body{position:relative}
+.gotas{position:absolute;inset:0;overflow:hidden;overflow:clip;pointer-events:none;z-index:3}
 .gota{position:absolute;width:0;height:0;pointer-events:none}
 .gota svg{position:absolute;left:-30px;top:-30px;width:60px;height:60px;overflow:visible}
 .gota path{fill:none;stroke:#2e2a24;stroke-linecap:round;vector-effect:non-scaling-stroke;transform-origin:30px 30px;transform-box:view-box;animation:gota-ring 1.9s cubic-bezier(.2,.7,.3,1) both}
@@ -707,7 +708,7 @@ body{
      INTRO / H1
      ══════════════════════════════ -->
 <section class="intro">
-  <span class="intro-eyebrow">Alerta temprana comunitaria · Chile</span>
+  <span class="intro-eyebrow">Alerta temprana comunitaria <span style="white-space:nowrap">· Chile</span></span>
   <h1>Detecta los megaproyectos eléctricos <em>antes</em> de que lleguen a tu territorio</h1>
   <p>Herramientas gratuitas para comunidades: aprende a leer las huellas tempranas, explora el mapa de proyectos y actúa a tiempo.</p>
 </section>
@@ -965,7 +966,7 @@ body{
       card.addEventListener('touchstart', e => {
         startY = e.touches[0].clientY;
         startX = e.touches[0].clientX;
-      }, { passive: true });
+      }, { passive: true, capture: true }); /* en captura: el stopPropagation de .card-btn no la salta */
 
       /* En móvil: primer toque revela, segundo toque navega (si es link) */
       card.addEventListener('touchend', e => {
@@ -1062,6 +1063,12 @@ body{
   });
 
   /* ── Init ── */
+  window.addEventListener('pageshow', e => {
+    if (!e.persisted) return;
+    document.querySelectorAll('.card.is-active').forEach(c => c.classList.remove('is-active'));
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.card')) document.activeElement.blur();
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     initCards();
   });
@@ -1096,12 +1103,9 @@ body{
   var small = window.innerWidth < 640 ? 1 : 0;
 
   /* ── circulitos de tinta (DOM; no dependen de WebGL) ── */
-  var layer = document.createElement('div'), pista = document.createElement('div');
-  layer.className = 'gotas'; layer.setAttribute('aria-hidden', 'true'); pista.className = 'gotas-pista';
-  layer.appendChild(pista); document.body.appendChild(layer);
-  var live = 0;
-  function follow(){ pista.style.transform = 'translate(' + (-window.scrollX) + 'px,' + (-window.scrollY) + 'px)'; }
-  window.addEventListener('scroll', function(){ if (live) follow(); }, { passive:true });
+  var layer = document.createElement('div');                   // capa del alto del documento: los anillos se mueven con la página
+  layer.className = 'gotas'; layer.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(layer);
   var BLOCK = 'a,button,.card,.modal-overlay,.site-header,.site-footer,h1,p,input,textarea,select,label,[role="button"]';
   var down = null, onDrop = null;
   document.addEventListener('pointerdown', function(e){ down = e.button === 0 ? { x:e.clientX, y:e.clientY, t:performance.now(), ok:!(e.target.closest && e.target.closest(BLOCK)) } : null; }, { passive:true });
@@ -1125,13 +1129,12 @@ body{
   }
   function ring(x, y, R){
     var s = Math.random() * 6.28;
-    follow(); live++;
     var el = document.createElement('span');
     el.className = 'gota';
     el.style.left = x + 'px'; el.style.top = y + 'px';
     el.innerHTML = '<svg viewBox="0 0 60 60"><path d="' + wobbly(R, s) + '" pathLength="1" stroke-dasharray=".88 .12" stroke-dashoffset="' + Math.random().toFixed(2) + '" stroke-width="1.5"/><path d="' + wobbly(R * .55, s + 1) + '" stroke-width=".9"/></svg>';
-    pista.appendChild(el);
-    setTimeout(function(){ el.remove(); live--; }, 2300);
+    layer.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 2300);
   }
 
   /* ── shader ── */
@@ -1232,7 +1235,7 @@ body{
 '          vec2 bb=blade(lp,dir,Lb,2.3*wsc,sd,uPhase*2.+nb);keep(r,bb.x,bb.y);',
 '          keep(r,length(lp-dir*1.5*wsc)-1.4*wsc,1.15);',
 '        }',
-'        if(reach>.01){',                                                        // dosel: mata floja de cintas que cuelgan bajo la superficie
+'        if(reach>.15){',                                                        // dosel: mata floja de cintas que cuelgan bajo la superficie
 '          vec2 tp=vec2(u,v)-vec2(stipeX(L,L,x0,lean,A,sid,reach),L-.8);',
 '          keep(r,sdEll(tp,vec2(3.4,2.2)*wsc*reach),1.2);',                        // pozo de tinta donde el tallo toca la superficie
 '          for(int b=0;b<4;b++){float fb=float(b);float hb=h11(sid+fb*1.7);',
@@ -1240,7 +1243,7 @@ body{
 '            float ang=.08+.5*hb;',
 '            vec2 dir=normalize(vec2(sd*cos(ang),-sin(ang)));',
 '            float Lb=(16.+18.*hb)*wsc*reach*(fb<2.5?1.:.6);',
-'            vec2 bb=blade(tp-vec2(sd*fb*2.5,fb*.8),dir,Lb,1.9*wsc,sd,uPhase*1.7+fb);',
+'            vec2 bb=blade(tp-vec2(sd*fb*2.5,fb*.8)*reach,dir,Lb,1.9*wsc*reach,sd,uPhase*1.7+fb);',
 '            keep(r,bb.x,bb.y*.95);}',
 '        }',
 '      }',
@@ -1483,7 +1486,8 @@ body{
 
   /* se prepara al acercarse a la vista (o en un momento libre, si no hay IntersectionObserver) */
   if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function(es){ if (es[0].isIntersecting) start(); }, { rootMargin:'500px 0px' }).observe(band);
+    var idle = window.requestIdleCallback || function(f){ return setTimeout(f, 400); };
+    new IntersectionObserver(function(es){ if (es[0].isIntersecting) idle(start, { timeout:1200 }); }, { rootMargin:'500px 0px' }).observe(band);
     new IntersectionObserver(function(es){ visible = es[0].isIntersecting; if (visible) { sScroll = lastY = window.scrollY || 0; vel = 0; drawnGrow = -1; wake(); } }, { rootMargin:'40px' }).observe(band);
   } else {
     visible = true;
